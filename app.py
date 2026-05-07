@@ -3,6 +3,9 @@ import streamlit.components.v1 as components
 import anthropic
 import base64
 import os
+import requests
+import json
+import xml.etree.ElementTree as ET
 
 
 def load_agent_system(key):
@@ -11,6 +14,110 @@ def load_agent_system(key):
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
     return ""
+
+
+def search_pubmed(query, max_results=5):
+    base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+    try:
+        r = requests.get(base + "esearch.fcgi", params={
+            "db": "pubmed", "term": query, "retmax": max_results,
+            "retmode": "json", "sort": "relevance"
+        }, timeout=10)
+        pmids = r.json().get("esearchresult", {}).get("idlist", [])
+        if not pmids:
+            return "No PubMed results found for this query."
+
+        r2 = requests.get(base + "efetch.fcgi", params={
+            "db": "pubmed", "id": ",".join(pmids),
+            "retmode": "xml", "rettype": "abstract"
+        }, timeout=10)
+
+        root = ET.fromstring(r2.content)
+        results = []
+        for article in root.findall(".//PubmedArticle"):
+            title = article.findtext(".//ArticleTitle", "No title")
+            abstract = article.findtext(".//AbstractText", "No abstract available")
+            journal = article.findtext(".//Journal/Title", "Unknown journal")
+            year = article.findtext(".//PubDate/Year", "")
+            month = article.findtext(".//PubDate/Month", "")
+            pub_date = f"{year} {month}".strip()
+
+            authors = []
+            for author in article.findall(".//Author")[:3]:
+                last = author.findtext("LastName", "")
+                if last:
+                    authors.append(last)
+            author_str = ", ".join(authors) + (" et al." if len(authors) >= 3 else "")
+
+            pmid = article.findtext(".//PMID", "")
+            results.append({
+                "pmid": pmid,
+                "title": title,
+                "authors": author_str,
+                "journal": journal,
+                "published": pub_date,
+                "abstract": abstract[:600] + "..." if len(abstract) > 600 else abstract,
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+            })
+        return results
+    except Exception as e:
+        return f"PubMed search error: {str(e)}"
+
+
+DEXTER_TOOLS = [
+    {
+        "name": "search_pubmed",
+        "description": (
+            "Search PubMed for peer-reviewed medical literature. "
+            "Use this whenever Phorping asks about medical topics, new research, clinical guidelines, "
+            "or journal updates. Returns titles, authors, journal, publication date, abstract, and URL."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "PubMed search query. Use MeSH terms and boolean operators for precision."
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Number of results to return (default 5, max 10)",
+                    "default": 5
+                }
+            },
+            "required": ["query"]
+        }
+    }
+]
+
+
+def run_dexter(client, system, history):
+    messages = list(history)
+    while True:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2048,
+            system=system,
+            messages=messages,
+            tools=DEXTER_TOOLS,
+        )
+        if response.stop_reason == "tool_use":
+            tool_uses = [b for b in response.content if b.type == "tool_use"]
+            messages.append({"role": "assistant", "content": response.content})
+            tool_results = []
+            for tu in tool_uses:
+                if tu.name == "search_pubmed":
+                    with st.spinner(f"🔬 Searching PubMed: {tu.input.get('query', '')}..."):
+                        result = search_pubmed(tu.input["query"], tu.input.get("max_results", 5))
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tu.id,
+                        "content": json.dumps(result)
+                    })
+            messages.append({"role": "user", "content": tool_results})
+        else:
+            return "".join(b.text for b in response.content if hasattr(b, "text"))
+
 
 st.set_page_config(page_title="Phorping Agents", page_icon="⚔", layout="wide")
 
@@ -422,15 +529,19 @@ def show_chat():
         client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
         with st.chat_message("assistant"):
-            with st.spinner("Channeling..."):
-                response = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=1024,
-                    system=agent["system"],
-                    messages=history,
-                )
-                reply = response.content[0].text
+            if name == "Dexter":
+                reply = run_dexter(client, agent["system"], history)
                 st.write(reply)
+            else:
+                with st.spinner("Channeling..."):
+                    response = client.messages.create(
+                        model="claude-haiku-4-5-20251001",
+                        max_tokens=1024,
+                        system=agent["system"],
+                        messages=history,
+                    )
+                    reply = response.content[0].text
+                    st.write(reply)
 
         history.append({"role": "assistant", "content": reply})
         st.session_state.histories[name] = history
