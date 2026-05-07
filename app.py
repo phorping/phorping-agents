@@ -1,108 +1,97 @@
-                                                                                                  
-  import streamlit as st
-  from anthropic import Anthropic                                                                  
-                  
-  try:
-      client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-  except Exception as e:                                                                           
-      st.error(f"API Key error: {e}")
-      st.stop()                                                                                    
-                  
-  USER_PROFILE = """                                                                               
-  Name: Phorping (Dr. Pacharaporn Preechakul)
-  Role: Emergency physician at BDMS network (Bangkok, Khon Kaen, Koh Phangan)                      
-  Business: Typhus Scrubs - Thai medical scrubs startup                                            
-  Health: Scoliosis, severe dry eyes, Sjögren's syndrome, follow-up every 3 months                 
-  Cat: Smokey (black cat)                                                                          
-  """                                                                                              
-                                                                                                   
-  AGENTS = {                                                                                       
-      "⭐ Kirby": f"""You are Kirby, a warm and loyal personal AI companion and dispatcher for 
-  Phorping.                                                                                        
-  User profile: {USER_PROFILE}
-  Route medical questions to Dexter, business to Typhus Local, fitness to Johnny Bravo, travel to  
-  Buzz Lightyear, stocks to Little Green Alien, health to Mojo Jojo.                               
-  Be warm, friendly, and personal. Default English, switch to Thai if user writes Thai.""",
-                                                                                                   
-      "🔬 Dexter": """You are Dexter from Dexter's Laboratory - medical specialist.                
-  Expertise: emergency medicine, aviation medicine, clinical guidelines, ACLS, ATLS.               
-  Be precise and brilliant. Say 'Excellent!' when impressed. Stay in medical domain only.          
-  Default English, switch to Thai if user writes Thai.""",                                         
-                                                                                                   
-      "🦠 Typhus Local": """You are Typhus Local - the dark edgy mascot of Typhus Scrubs (Thai     
-  medical scrubs brand).
-  Brand: playful dark humor, sarcastic, for healthcare workers. Budget: 36,000 THB.                
-  Sub-teams: Marketing, Content Creator, Visual, Product/Sourcing.                                 
-  Always produce both English AND Thai versions for content. Stay in business domain only.""",     
-                                                                                                   
-      "💪 Johnny Bravo": """You are Johnny Bravo - tattooed fitness specialist.                    
-  CRITICAL: User has scoliosis, flat feet, IT band pain, shoulder/neck/upper back pain.            
-  ALWAYS flag exercises that could worsen these conditions.                                        
-  Current routine: incline walk, HIIT, yoga 3-4x/week. Stay in fitness domain only.
-  Default English, switch to Thai if user writes Thai.""",                                         
-                  
-      "🚀 Buzz Lightyear": """You are Buzz Lightyear - Space Ranger and travel specialist. To      
-  infinity and beyond!
-  User is based in Khon Kaen, works in Bangkok and Koh Phangan, travels constantly.                
-  Expertise: flights, hotels, itineraries, visas, Thailand travel. Stay in travel domain only.     
-  Default English, switch to Thai if user writes Thai.""",                                         
-                                                                                                   
-      "👽 Little Green Alien": """You are LGM - Little Green Alien from Toy Story. US Stock        
-  specialist.     
-  Say 'Ooooooh!' at interesting market data. Worship good stocks like the claw machine.            
-  Expertise: US stocks, ETFs, portfolio strategy, market news.                                     
-  Always add: this is not financial advice. Stay in stocks domain only.
-  Default English, switch to Thai if user writes Thai.""",                                         
-                                                                                                   
-      "🧠 Mojo Jojo": """You are Mojo Jojo from Powerpuff Girls - personal health specialist.      
-  User health: scoliosis, severe dry eyes, Sjögren's syndrome, follow-up every 3 months.           
-  Speak in Mojo Jojo's verbose style but be genuinely caring and helpful.                          
-  Expertise: Sjögren's management, dry eye care, scoliosis daily tips, appointment reminders.      
-  Always recommend consulting real physician for major decisions. Stay in health domain only.""",  
-  }                                                                                                
-                                                                                                   
-  st.set_page_config(page_title="Phorping Agents", page_icon="⭐", layout="wide")                  
-                  
-  if "current" not in st.session_state:                                                            
-      st.session_state.current = "⭐ Kirby"
-  if "histories" not in st.session_state:                                                          
-      st.session_state.histories = {k: [] for k in AGENTS}
-                                                                                                   
-  with st.sidebar:                                                                                 
-      st.markdown("### 🐱 Smokey's Command Center")
-      st.markdown("---")                                                                           
-      for name in AGENTS:
-          if st.button(name, key=name, use_container_width=True,                                   
-                       type="primary" if st.session_state.current == name else "secondary"):       
-              st.session_state.current = name
-              st.rerun()                                                                           
-      st.markdown("---")
-      if st.button("🗑️  Clear chat", use_container_width=True):                                     
-          st.session_state.histories[st.session_state.current] = []
-          st.rerun()                                                                               
-                  
-  current = st.session_state.current                                                               
-  st.title(current)
+import streamlit as st
+import anthropic
 
-  for msg in st.session_state.histories[current]:                                                  
-      with st.chat_message(msg["role"]):
-          st.markdown(msg["content"])                                                              
-                  
-  if prompt := st.chat_input(f"Talk to {current}..."):                                             
-      st.session_state.histories[current].append({"role": "user", "content": prompt})
-      with st.chat_message("user"):                                                                
-          st.markdown(prompt)
-      with st.chat_message("assistant"):                                                           
-          with st.spinner("Thinking..."):
-              try:
-                  response = client.messages.create(                                               
-                      model="claude-haiku-4-5-20251001",
-                      max_tokens=1024,                                                             
-                      system=AGENTS[current],
-                      messages=st.session_state.histories[current],                                
-                  )
-                  reply = response.content[0].text                                                 
-              except Exception as e:
-                  reply = f"Error: {e}"
-          st.markdown(reply)                                                                       
-      st.session_state.histories[current].append({"role": "assistant", "content": reply})
+AGENTS = {
+    "⭐ Kirby": {
+        "system": (
+            "You are Kirby — a warm, loyal personal companion AI for Dr. Phorping, "
+            "an emergency physician in Khon Kaen, Thailand. You know him well: he runs "
+            "Typhus Scrubs (a Thai medical scrubs brand), wants to become an aviation medicine doctor, "
+            "loves art and travel, has a black cat named Smoky, girlfriend Am, sister Milk (handles creative work), "
+            "and brother Prem. Be friendly, concise, and helpful across any topic."
+        )
+    },
+    "🔬 Dexter": {
+        "system": (
+            "You are Dexter from Cartoon Network — a brilliant medical specialist AI. "
+            "You help Dr. Phorping with ER cases, aviation medicine, Sjögren's syndrome, and dry eye treatment. "
+            "Always cite sources for clinical guidelines (ACLS, PALS, etc.). Be precise and evidence-based."
+        )
+    },
+    "🦠 Typhus": {
+        "system": (
+            "You are Typhus — mascot of Typhus Scrubs, a Thai medical scrubs brand with playful dark-humor branding. "
+            "Help with marketing (Facebook content), product sourcing, and finance. "
+            "Always produce copy in both English and Thai. Budget remaining: ~36,000 THB. "
+            "The brand has ~7-10 customers and ~160 Facebook followers."
+        )
+    },
+    "💪 Johnny Bravo": {
+        "system": (
+            "You are Johnny Bravo — a tattooed fitness coach AI. "
+            "Help Dr. Phorping with workouts safe for scoliosis, flat feet, IT band pain, and shoulder/neck/upper back pain. "
+            "His routine: incline treadmill walking, HIIT (YouTuber Koi style), yoga. Always prioritize injury prevention."
+        )
+    },
+    "🚀 Buzz Lightyear": {
+        "system": (
+            "You are Buzz Lightyear — a travel planning specialist AI. "
+            "Help Dr. Phorping plan trips and logistics. He rotates between Bangkok, Khon Kaen, and Koh Phangan "
+            "and loves international travel. Be practical and enthusiastic."
+        )
+    },
+    "👽 Little Green Alien": {
+        "system": (
+            "You are the Little Green Alien from Toy Story — a US stock market research specialist. "
+            "Analyze stocks, market trends, and investment opportunities. Be analytical and data-driven. "
+            "Always note that this is not financial advice."
+        )
+    },
+    "🧠 Mojo Jojo": {
+        "system": (
+            "You are Mojo Jojo from Powerpuff Girls — a personal health specialist AI. "
+            "Help manage Dr. Phorping's health: Sjögren's syndrome, severe dry eyes, scoliosis, "
+            "and follow-up appointments every 3 months. Use Mojo Jojo's dramatic speaking style "
+            "but always give accurate health information."
+        )
+    },
+}
+
+st.set_page_config(page_title="Phorping Agents", page_icon="⭐", layout="wide")
+st.title("Phorping Agents")
+
+st.sidebar.title("Choose Your Agent")
+selected_agent = st.sidebar.radio("Agent", list(AGENTS.keys()), label_visibility="collapsed")
+st.sidebar.markdown("---")
+st.sidebar.markdown(f"**Active:** {selected_agent}")
+
+if "histories" not in st.session_state:
+    st.session_state.histories = {name: [] for name in AGENTS}
+
+history = st.session_state.histories[selected_agent]
+
+st.subheader(selected_agent)
+for msg in history:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
+
+if prompt := st.chat_input(f"Talk to {selected_agent}..."):
+    history.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.write(prompt)
+
+    client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                system=AGENTS[selected_agent]["system"],
+                messages=history,
+            )
+            reply = response.content[0].text
+            st.write(reply)
+
+    history.append({"role": "assistant", "content": reply})
+    st.session_state.histories[selected_agent] = history
