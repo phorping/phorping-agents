@@ -10,7 +10,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
 #MainMenu, footer, header { visibility: hidden; }
-.stApp { background: #080618 !important; }
+.stApp { background: #f5f0e8 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,9 +150,9 @@ body{background:transparent;font-family:'Cinzel',serif;}
 
 .title{
     text-align:center;padding:12px 0 24px;
-    color:#f0d080;font-size:26px;font-weight:900;
+    color:#5a3e1b;font-size:26px;font-weight:900;
     text-transform:uppercase;letter-spacing:5px;
-    text-shadow:0 0 24px rgba(240,208,128,0.5),0 0 2px rgba(240,208,128,0.8);
+    text-shadow:0 1px 2px rgba(90,62,27,0.2);
 }
 
 .grid{
@@ -163,11 +163,21 @@ body{background:transparent;font-family:'Cinzel',serif;}
 
 .rg-card{perspective:1200px;cursor:pointer;height:268px;user-select:none;}
 
+@keyframes nudge{
+    0%  {transform:scale(1) rotate(0deg);}
+    20% {transform:scale(1.07) rotate(-3deg);}
+    40% {transform:scale(1.07) rotate(3deg);}
+    60% {transform:scale(1.04) rotate(-1.5deg);}
+    80% {transform:scale(1.02) rotate(1deg);}
+    100%{transform:scale(1) rotate(0deg);}
+}
+.rg-card.nudge{animation:nudge 0.4s ease;}
+
 .card-inner{
     width:100%;height:100%;
     position:relative;
     transform-style:preserve-3d;
-    transition:transform 0.7s cubic-bezier(0.4,0.2,0.2,1);
+    transition:transform 0.75s cubic-bezier(0.4,0.2,0.2,1);
 }
 .rg-card.flipped .card-inner{transform:rotateY(180deg);}
 
@@ -175,27 +185,24 @@ body{background:transparent;font-family:'Cinzel',serif;}
     position:absolute;width:100%;height:100%;
     backface-visibility:hidden;-webkit-backface-visibility:hidden;
     border-radius:10px;
-    border:2px solid #c8a04a;
-    box-shadow:
-        0 0 0 1px rgba(200,160,74,0.15),
-        0 6px 24px rgba(0,0,0,0.7),
-        inset 0 0 50px rgba(0,0,0,0.5);
+    border:2px solid #b8922a;
+    box-shadow:0 4px 20px rgba(90,62,27,0.15),0 1px 4px rgba(90,62,27,0.1);
     display:flex;flex-direction:column;
     align-items:center;justify-content:center;
     padding:14px;overflow:hidden;
 }
-.card-front{background:linear-gradient(160deg,#1d1840,#0d0b24);}
+.card-front{background:linear-gradient(160deg,#fffdf7,#fdf5e6);}
 .card-back{
     transform:rotateY(180deg);
-    background:linear-gradient(160deg,#1a1230,#0e0a1e);
+    background:linear-gradient(160deg,#fef9ee,#faf0d8);
     justify-content:flex-start;align-items:flex-start;padding:14px 13px;
 }
 
 .card-face::before,.card-face::after{
     content:'';position:absolute;
     width:16px;height:16px;
-    border-color:#c8a04a;border-style:solid;
-    opacity:0.8;
+    border-color:#b8922a;border-style:solid;
+    opacity:0.6;
 }
 .card-face::before{top:8px;left:8px;border-width:2px 0 0 2px;}
 .card-face::after{bottom:8px;right:8px;border-width:0 2px 2px 0;}
@@ -206,50 +213,59 @@ body{background:transparent;font-family:'Cinzel',serif;}
     display:flex;align-items:center;justify-content:center;
     margin-bottom:10px;font-size:42px;
     overflow:hidden;position:relative;
-    box-shadow:0 0 14px currentColor,inset 0 0 10px rgba(0,0,0,0.3);
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
-.avatar-static{display:block;width:78px;height:78px;object-fit:contain;border-radius:50%;}
-.avatar-gif{display:none;width:78px;height:78px;object-fit:contain;border-radius:50%;}
-.rg-card:hover .avatar-static{display:none;}
-.rg-card:hover .avatar-gif{display:block;}
-.rg-card:hover .avatar-emoji{display:none;}
+
+/* Smooth crossfade between still and gif */
+.avatar-container{position:relative;width:78px;height:78px;}
+.avatar-static{
+    position:absolute;top:0;left:0;
+    width:78px;height:78px;object-fit:contain;border-radius:50%;
+    opacity:1;transition:opacity 0.45s ease;
+}
+.avatar-gif{
+    position:absolute;top:0;left:0;
+    width:78px;height:78px;object-fit:contain;border-radius:50%;
+    opacity:0;transition:opacity 0.45s ease;
+}
+.rg-card:hover .avatar-static{opacity:0;}
+.rg-card:hover .avatar-gif{opacity:1;}
 
 .agent-name{
-    color:#f0d080;font-size:13px;font-weight:700;
+    color:#2a1a0a;font-size:13px;font-weight:700;
     text-transform:uppercase;letter-spacing:2px;text-align:center;
-    text-shadow:0 0 8px rgba(240,208,128,0.6);
 }
 .agent-role{
-    color:rgba(200,160,74,0.6);font-size:8.5px;
+    color:#8b6914;font-size:8.5px;
     text-transform:uppercase;letter-spacing:1.5px;margin-top:3px;
 }
 .hint{
     position:absolute;bottom:7px;left:0;right:0;
-    text-align:center;color:rgba(200,160,74,0.28);
+    text-align:center;color:rgba(90,62,27,0.3);
     font-size:7px;letter-spacing:1px;font-family:'Cinzel',serif;
 }
 
 .back-name{
-    color:#f0d080;font-size:12px;font-weight:700;
+    color:#2a1a0a;font-size:12px;font-weight:700;
     text-align:center;width:100%;
     text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;
 }
 .back-divider{
     width:100%;height:1px;
-    background:linear-gradient(to right,transparent,#c8a04a,transparent);
+    background:linear-gradient(to right,transparent,#b8922a,transparent);
     margin:3px 0 8px;
 }
 .ag-tagline{
-    color:#c8a04a;font-size:9.5px;font-style:italic;
+    color:#8b6914;font-size:9.5px;font-style:italic;
     text-align:center;width:100%;margin-bottom:9px;line-height:1.4;
 }
 .qual{
-    color:rgba(230,210,160,0.85);font-size:10px;
+    color:#3a2a10;font-size:10px;
     padding:3.5px 0;
-    border-bottom:1px solid rgba(200,160,74,0.1);
+    border-bottom:1px solid rgba(184,146,42,0.2);
     width:100%;
 }
-.qual::before{content:"⚔ ";color:#c8a04a;}
+.qual::before{content:"⚔ ";color:#b8922a;}
 """
 
 
@@ -267,13 +283,14 @@ def build_avatar(name):
     static = _b64(f"images/{key}.png")
     gif = _b64(f"images/{key}.gif")
     emoji = AGENTS[name]["emoji"]
-    if static and gif:
-        return (
-            f'<img class="avatar-static" src="{static}">'
-            f'<img class="avatar-gif" src="{gif}">'
-        )
     if static:
-        return f'<img class="avatar-static" src="{static}">'
+        gif_tag = f'<img class="avatar-gif" src="{gif}">' if gif else ""
+        return (
+            f'<div class="avatar-container">'
+            f'<img class="avatar-static" src="{static}">'
+            f'{gif_tag}'
+            f'</div>'
+        )
     return f'<span class="avatar-emoji">{emoji}</span>'
 
 
@@ -331,20 +348,48 @@ def show_overview():
 </div>
 <script>
 var timers = {{}};
+var flippedCard = null;
+
+function goToChat(name) {{
+    var a = document.createElement('a');
+    a.href = '?agent=' + encodeURIComponent(name);
+    a.target = '_top';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}}
+
 document.querySelectorAll('.rg-card').forEach(function(card) {{
     card.addEventListener('click', function() {{
         var name = this.dataset.agent;
         var el = this;
+
         if (timers[name]) {{
+            // Double click — nudge then navigate
             clearTimeout(timers[name]);
             delete timers[name];
-            window.parent.location.href =
-                window.parent.location.pathname + '?agent=' + encodeURIComponent(name);
+            el.classList.add('nudge');
+            setTimeout(function() {{
+                el.classList.remove('nudge');
+                goToChat(name);
+            }}, 420);
         }} else {{
+            // Single click — wait to confirm it's not a double click
             timers[name] = setTimeout(function() {{
                 delete timers[name];
-                el.classList.toggle('flipped');
-            }}, 300);
+                // Flip back any other open card
+                if (flippedCard && flippedCard !== el) {{
+                    flippedCard.classList.remove('flipped');
+                }}
+                // Toggle this card
+                if (el.classList.contains('flipped')) {{
+                    el.classList.remove('flipped');
+                    flippedCard = null;
+                }} else {{
+                    el.classList.add('flipped');
+                    flippedCard = el;
+                }}
+            }}, 280);
         }}
     }});
 }});
@@ -359,14 +404,13 @@ def show_chat():
 
     st.markdown(f"""
     <div style="padding:10px 0 0;">
-      <h2 style='font-family:"Cinzel",serif;color:#f0d080;margin:0;
-                 text-shadow:0 0 12px rgba(240,208,128,0.4);'>
+      <h2 style='font-family:"Cinzel",serif;color:#2a1a0a;margin:0;'>
         {agent['emoji']} &nbsp; {name}
       </h2>
-      <div style='color:#c8a04a;font-size:12px;font-style:italic;margin:5px 0 14px;'>
+      <div style='color:#8b6914;font-size:12px;font-style:italic;margin:5px 0 14px;'>
         "{agent['tagline']}"
       </div>
-      <div style='height:1px;background:linear-gradient(to right,transparent,#c8a04a,transparent);
+      <div style='height:1px;background:linear-gradient(to right,transparent,#b8922a,transparent);
                   margin-bottom:18px;'></div>
     </div>
     """, unsafe_allow_html=True)
