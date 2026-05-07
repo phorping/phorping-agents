@@ -50,6 +50,12 @@ def search_pubmed(query, max_results=5):
             author_str = ", ".join(authors) + (" et al." if len(authors) >= 3 else "")
 
             pmid = article.findtext(".//PMID", "")
+            pmc_id = None
+            for aid in article.findall(".//ArticleId"):
+                if aid.get("IdType") == "pmc":
+                    pmc_id = aid.text
+                    break
+
             results.append({
                 "pmid": pmid,
                 "title": title,
@@ -57,7 +63,9 @@ def search_pubmed(query, max_results=5):
                 "journal": journal,
                 "published": pub_date,
                 "abstract": abstract[:600] + "..." if len(abstract) > 600 else abstract,
-                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                "full_text_available": pmc_id is not None,
+                "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/" if pmc_id else None,
             })
         return results
     except Exception as e:
