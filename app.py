@@ -4,6 +4,14 @@ import anthropic
 import base64
 import os
 
+
+def load_agent_system(key):
+    path = f"agents/{key}.md"
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return ""
+
 st.set_page_config(page_title="Phorping Agents", page_icon="⚔", layout="wide")
 
 st.markdown("""
@@ -25,13 +33,7 @@ AGENTS = {
             "English & Thai bilingual",
             "Tracks Typhus, medicine & travel",
         ],
-        "system": (
-            "You are Kirby — a warm, loyal personal companion AI for Dr. Phorping, "
-            "an emergency physician in Khon Kaen, Thailand. He runs Typhus Scrubs, "
-            "wants to become an aviation medicine doctor, loves art and travel. "
-            "His black cat is Smoky, girlfriend is Am, sister is Milk, brother is Prem. "
-            "Be friendly, concise, and helpful across any topic."
-        ),
+        "system": load_agent_system("kirby"),
     },
     "Dexter": {
         "emoji": "🔬", "color": "#4A90D9",
@@ -43,11 +45,7 @@ AGENTS = {
             "Sjögren's syndrome & dry eye",
             "ACLS / PALS guidelines",
         ],
-        "system": (
-            "You are Dexter from Cartoon Network — a brilliant medical specialist AI. "
-            "Help Dr. Phorping with ER cases, aviation medicine, Sjögren's syndrome, and dry eye. "
-            "Always cite sources for clinical guidelines. Be precise and evidence-based."
-        ),
+        "system": load_agent_system("dexter"),
     },
     "Typhus": {
         "emoji": "🦠", "color": "#E74C3C",
@@ -59,11 +57,7 @@ AGENTS = {
             "Financial planning (~36k THB)",
             "English & Thai copywriting",
         ],
-        "system": (
-            "You are Typhus — mascot of Typhus Scrubs, a Thai medical scrubs brand with playful dark-humor branding. "
-            "Help with Facebook marketing, product sourcing, and finance. "
-            "Always produce copy in both English and Thai. Budget remaining: ~36,000 THB."
-        ),
+        "system": load_agent_system("typhus"),
     },
     "Johnny Bravo": {
         "emoji": "💪", "color": "#F39C12",
@@ -75,12 +69,7 @@ AGENTS = {
             "HIIT, incline walk & yoga",
             "Injury prevention first",
         ],
-        "system": (
-            "You are Johnny Bravo — a tattooed fitness coach AI. "
-            "Help Dr. Phorping with workouts safe for scoliosis, flat feet, IT band pain, "
-            "and shoulder/neck/upper back pain. His routine: incline treadmill walking, "
-            "HIIT (YouTuber Koi style), yoga. Always prioritize injury prevention."
-        ),
+        "system": load_agent_system("johnny"),
     },
     "Buzz Lightyear": {
         "emoji": "🚀", "color": "#9B59B6",
@@ -92,11 +81,7 @@ AGENTS = {
             "Bangkok / Khon Kaen / Koh Phangan",
             "Medical travel considerations",
         ],
-        "system": (
-            "You are Buzz Lightyear — a travel planning specialist AI. "
-            "Help Dr. Phorping plan trips and logistics. He rotates between Bangkok, "
-            "Khon Kaen, and Koh Phangan and loves international travel."
-        ),
+        "system": load_agent_system("buzz"),
     },
     "Little Green Alien": {
         "emoji": "👽", "color": "#27AE60",
@@ -108,11 +93,7 @@ AGENTS = {
             "Investment opportunity screening",
             "Disclaimer: not financial advice",
         ],
-        "system": (
-            "You are the Little Green Alien from Toy Story — a US stock market research specialist. "
-            "Analyze stocks, market trends, and investment opportunities. Be analytical and data-driven. "
-            "Always note that this is not financial advice."
-        ),
+        "system": load_agent_system("alien"),
     },
     "Mojo Jojo": {
         "emoji": "🧠", "color": "#1ABC9C",
@@ -124,12 +105,19 @@ AGENTS = {
             "Scoliosis health tracking",
             "Follow-up reminders every 3 months",
         ],
-        "system": (
-            "You are Mojo Jojo from Powerpuff Girls — a personal health specialist AI. "
-            "Help manage Dr. Phorping's health: Sjögren's syndrome, severe dry eyes, scoliosis, "
-            "and follow-up appointments every 3 months. Use Mojo Jojo's dramatic style "
-            "but give accurate health information."
-        ),
+        "system": load_agent_system("mojo"),
+    },
+    "Genie": {
+        "emoji": "🧞", "color": "#4A90E2",
+        "role": "Psychotherapist",
+        "tagline": "Ten thousand years of listening. All yours.",
+        "qualifications": [
+            "Emotional support & venting",
+            "Grief processing (no rush)",
+            "Stress & burnout from clinical work",
+            "CBT-style thought reframing",
+        ],
+        "system": load_agent_system("genie"),
     },
 }
 
@@ -141,6 +129,7 @@ GIF_KEYS = {
     "Buzz Lightyear": "buzz",
     "Little Green Alien": "alien",
     "Mojo Jojo": "mojo",
+    "Genie": "genie",
 }
 
 CARD_CSS = """
