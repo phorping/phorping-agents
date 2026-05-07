@@ -72,6 +72,40 @@ def search_pubmed(query, max_results=5):
         return f"PubMed search error: {str(e)}"
 
 
+def _get_text(el):
+    return "".join(el.itertext()).strip()
+
+
+def fetch_pmc_fulltext(pmc_id):
+    base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+    numeric_id = str(pmc_id).replace("PMC", "").strip()
+    try:
+        r = requests.get(base + "efetch.fcgi", params={
+            "db": "pmc", "id": numeric_id, "retmode": "xml"
+        }, timeout=15)
+        root = ET.fromstring(r.content)
+        sections = {}
+
+        for ab in root.iter("abstract"):
+            text = _get_text(ab)
+            if text:
+                sections["Abstract"] = text[:1200]
+                break
+
+        for sec in root.iter("sec"):
+            title_el = sec.find("title")
+            title = _get_text(title_el) if title_el is not None else "Section"
+            paragraphs = [_get_text(p) for p in sec.findall("p") if _get_text(p)]
+            if paragraphs and title not in sections:
+                sections[title] = " ".join(paragraphs)[:1200]
+
+        if not sections:
+            return "Full text XML retrieved but could not parse sections — article may use unsupported format."
+        return sections
+    except Exception as e:
+        return f"Full text fetch error: {str(e)}"
+
+
 DEXTER_TOOLS = [
     {
         "name": "search_pubmed",
@@ -95,6 +129,24 @@ DEXTER_TOOLS = [
             },
             "required": ["query"]
         }
+    },
+    {
+        "name": "fetch_pmc_fulltext",
+        "description": (
+            "Fetch the full text of a PubMed Central (PMC) open access article. "
+            "Use this when search_pubmed returns full_text_available=true and you need "
+            "to read beyond the abstract — introduction, methods, results, discussion, conclusion."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pmc_id": {
+                    "type": "string",
+                    "description": "The PMC ID from search results (e.g. 'PMC1234567' or '1234567')"
+                }
+            },
+            "required": ["pmc_id"]
+        }
     }
 ]
 
@@ -117,11 +169,16 @@ def run_dexter(client, system, history):
                 if tu.name == "search_pubmed":
                     with st.spinner(f"🔬 Searching PubMed: {tu.input.get('query', '')}..."):
                         result = search_pubmed(tu.input["query"], tu.input.get("max_results", 5))
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tu.id,
-                        "content": json.dumps(result)
-                    })
+                elif tu.name == "fetch_pmc_fulltext":
+                    with st.spinner(f"📄 Fetching full text: PMC{tu.input.get('pmc_id', '')}..."):
+                        result = fetch_pmc_fulltext(tu.input["pmc_id"])
+                else:
+                    result = "Unknown tool."
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": json.dumps(result)
+                })
             messages.append({"role": "user", "content": tool_results})
         else:
             return "".join(b.text for b in response.content if hasattr(b, "text"))
